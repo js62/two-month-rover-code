@@ -13,7 +13,7 @@ IK_target_pos=[0,0,0]
 # def calculate IK
 # def calculate direct motor control
 
-while running:# main loop:
+# while running:# main loop:
     #handle pygame events (such as closing command)
 
     #draw GUI
@@ -21,8 +21,8 @@ while running:# main loop:
         #displaying logs
         #displaying motor angles and stuff
     
-    if IK:
-        calculate_IK()
-    else:
-        direct_motor_control()
-    clamp_andgles()
+    # if IK:
+    #     calculate_IK()
+    # else:
+    #     direct_motor_control()
+    # clamp_andgles()
