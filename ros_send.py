@@ -2,7 +2,6 @@ import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String # type: ignore
 
-rclpy.init()
 node=Node("groundstation")
 motor_control_topic=node.create_publisher(String,"motorcontrol",10)
 
