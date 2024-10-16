@@ -17,7 +17,6 @@ pygame.display.set_caption("Bob, Did He? Rover Base Station")
 #define callback functions for ros_receive
 # def handle_log_data(data):
 #     print("Log data: ",data)
-# ros_receive.set_log_data_callback(handle_log_data)
 
 #--GUI Variables--#
 window_size = (1280, 720)
@@ -129,11 +128,41 @@ def console_send():
     # Display the input
     console_print("> " + input)
     # Parse the input to find if there are any commands
+    # separate string into array of arguments
+    args = parse_input(input)
+    if args[0] == "send":
+        if len(args) != 7:
+            console_print("Error: must send exactly 6 motor positions, separated by spaces.")
+        else:
+            positions = [float(args[1]),float(args[2]),float(args[3]),float(args[4]),float(args[5]),float(args[6])]
+            ros_send.send_motor_positions(positions)
+            
+        
+    
+    
+def parse_input(input):
+    args = []
+    arg = ""
+    for c in input:
+        if c == ' ':
+            args.append(arg)
+            arg = ""
+        else:
+            arg += c
+    if (arg != "") & (arg != " "):
+        args.append(arg)
+    return args
+            
     
     
 
 def console_print(text):
     console_log.append_html_text(text + "<br>")
+    
+
+    
+ros_receive.set_log_data_callback(console_print)
+ros_send.set_send_positions_callback(console_print)
 
 setup_gui()
 

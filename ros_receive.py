@@ -23,7 +23,7 @@ def set_log_data_callback(f):
 
 
 def log(d):
-    print("logging data: "+d) #This is just a placeholder!
+    log_data_callback("logging data: "+d)
 
 def process_data(m):
     components=m.data.split(":")

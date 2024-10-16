@@ -5,6 +5,9 @@ from std_msgs.msg import String # type: ignore
 node=Node("groundstation")
 motor_control_topic=node.create_publisher(String,"motorcontrol",10)
 
+def set_send_positions_callback(f):
+    global send_positions_callback
+    send_positions_callback=f
 
 def send_motor_positions(motor_poses):
     message_text=""
@@ -16,3 +19,6 @@ def send_motor_positions(motor_poses):
     message=String()
     message.data=message_text
     motor_control_topic.publish(message)
+    send_positions_callback("Sent to libre: " + message.data)
+    
+    
