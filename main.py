@@ -93,18 +93,18 @@ graphs_panel = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((window_siz
 claw_panel = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((graph_border, banner_size+graph_border), (graphs_panel_width, graphs_panel_height -console_size)), 
                                                                      manager=gui_manager)
 
-    ## GUI ELEMENTS ##
-    graph_1_background = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((graph_border/2,graph_border/2), graph_size),
+## GUI ELEMENTS ##
+graph_1_background = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((graph_border/2,graph_border/2), graph_size),
                                                     container=graphs_panel,
                                                     visible=True,
                                                     manager=gui_manager)
 
-    graph_2_background = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((window_size[0]/4-graph_border/2,graph_border/2), graph_size),
+graph_2_background = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((window_size[0]/4-graph_border/2,graph_border/2), graph_size),
                                                     container=graphs_panel,
                                                     visible=True,
                                                     manager=gui_manager)
 
-    graph_3_background = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((graph_border/2,(window_size[1]-banner_size)/2-graph_border/2),graph_size),
+graph_3_background = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((graph_border/2,(window_size[1]-banner_size)/2-graph_border/2),graph_size),
                                                     container=graphs_panel,
                                                     visible=True,
                                                     manager=gui_manager)
