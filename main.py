@@ -43,7 +43,7 @@ IK_target_pos=[0,0,0]
 
 running=True
 pygame.init()
-screen = pygame.display.set_mode(window_size)
+screen = pygame.display.set_mode(window_size,flags=pygame.RESIZABLE)
 gui_manager = pygame_gui.UIManager(window_size, "theme.json")
 clock = pygame.time.Clock()
 
@@ -53,42 +53,51 @@ clock = pygame.time.Clock()
 # TODO: find a way to make this section collapsible >.>
 
 ## CONTAINERS ##
-graphs_panel = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((window_size[0]/2+graph_border, banner_size+graph_border), (graphs_panel_width, graphs_panel_height)), 
-                                                                    manager=gui_manager)
-claw_panel = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((graph_border, banner_size+graph_border), (graphs_panel_width, graphs_panel_height -log_size)), 
-                                                                     manager=gui_manager)
 
-## GUI ELEMENTS ##
-graph_1_background = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((graph_border/2,graph_border/2), graph_size),
-                                                  container=graphs_panel,
-                                                  visible=True,
-                                                  manager=gui_manager)
+def setup_gui():
+    global graphs_panel, claw_panel, graph_1_background, graph_2_background, graph_3_background, graph_4_background, console_log
 
-graph_2_background = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((window_size[0]/4-graph_border/2,graph_border/2), graph_size),
-                                                  container=graphs_panel,
-                                                  visible=True,
-                                                  manager=gui_manager)
+    graphs_panel = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((window_size[0]/2+graph_border, banner_size+graph_border), (graphs_panel_width, graphs_panel_height)), 
+                                                                        manager=gui_manager)
+    claw_panel = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((graph_border, banner_size+graph_border), (graphs_panel_width, graphs_panel_height -log_size)), 
+                                                                        manager=gui_manager)
 
-graph_3_background = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((graph_border/2,(window_size[1]-banner_size)/2-graph_border/2),graph_size),
-                                                  container=graphs_panel,
-                                                  visible=True,
-                                                  manager=gui_manager)
+    ## GUI ELEMENTS ##
+    graph_1_background = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((graph_border/2,graph_border/2), graph_size),
+                                                    container=graphs_panel,
+                                                    visible=True,
+                                                    manager=gui_manager)
 
-graph_4_background = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((window_size[0]/4-graph_border/2,(window_size[1]-banner_size)/2-graph_border/2),graph_size),
-                                                  container=graphs_panel,
-                                                  visible=True,
-                                                  manager=gui_manager)
-console_log = pygame_gui.elements.UITextBox(relative_rect=pygame.Rect((graph_border, graphs_panel_height + graph_border + banner_size - log_size ), (graphs_panel_width, log_size)),
-                                            html_text="null",
-                                            manager=gui_manager)
-# input_display = pygame_gui.elements.UILabel(relative_rect=pygame.Rect((0, 0), (100, 100)),
-#                                            manager=gui_manager)
+    graph_2_background = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((window_size[0]/4-graph_border/2,graph_border/2), graph_size),
+                                                    container=graphs_panel,
+                                                    visible=True,
+                                                    manager=gui_manager)
+
+    graph_3_background = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((graph_border/2,(window_size[1]-banner_size)/2-graph_border/2),graph_size),
+                                                    container=graphs_panel,
+                                                    visible=True,
+                                                    manager=gui_manager)
+
+    graph_4_background = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((window_size[0]/4-graph_border/2,(window_size[1]-banner_size)/2-graph_border/2),graph_size),
+                                                    container=graphs_panel,
+                                                    visible=True,
+                                                    manager=gui_manager)
+    console_log = pygame_gui.elements.UITextBox(relative_rect=pygame.Rect((graph_border, graphs_panel_height + graph_border + banner_size - log_size ), (graphs_panel_width, log_size)),
+                                                html_text="null",
+                                                manager=gui_manager)
+    # input_display = pygame_gui.elements.UILabel(relative_rect=pygame.Rect((0, 0), (100, 100)),
+    #                                            manager=gui_manager)
+
+setup_gui()
+
 
 while running:
     sleep(0.1)
     time_delta = clock.tick(60)/1000.0
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
+            running = False
+        if event.type == pygame.KEYDOWN and pygame.key.get_pressed()[27]:
             running = False
         elif event.type == pygame.JOYAXISMOTION:
             # apply input to variables TODO
