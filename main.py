@@ -22,7 +22,8 @@ pygame.display.set_caption("Bob, Did He? Rover Base Station")
 #--GUI Variables--#
 window_size = (1280, 720)
 banner_size = 75 # This is in pixels
-log_size = 250
+console_size = 250
+console_input_size = 25
 graph_border = 10
 
 graphs_panel_width = window_size[0]/2-(graph_border*2)
@@ -46,16 +47,13 @@ pygame.init()
 screen = pygame.display.set_mode(window_size)
 gui_manager = pygame_gui.UIManager(window_size, "theme.json")
 clock = pygame.time.Clock()
+#controller = None
 
-
-## THIS IS THE SECTION WITH ALL THE GUI ELEMENTS ##
-
-# TODO: find a way to make this section collapsible >.>
-
+#region GUI ELEMENTS
 ## CONTAINERS ##
 graphs_panel = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((window_size[0]/2+graph_border, banner_size+graph_border), (graphs_panel_width, graphs_panel_height)), 
                                                                     manager=gui_manager)
-claw_panel = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((graph_border, banner_size+graph_border), (graphs_panel_width, graphs_panel_height -log_size)), 
+claw_panel = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((graph_border, banner_size+graph_border), (graphs_panel_width, graphs_panel_height -console_size)), 
                                                                      manager=gui_manager)
 
 ## GUI ELEMENTS ##
@@ -78,11 +76,27 @@ graph_4_background = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((wind
                                                   container=graphs_panel,
                                                   visible=True,
                                                   manager=gui_manager)
-console_log = pygame_gui.elements.UITextBox(relative_rect=pygame.Rect((graph_border, graphs_panel_height + graph_border + banner_size - log_size ), (graphs_panel_width, log_size)),
-                                            html_text="null",
+console_log = pygame_gui.elements.UITextBox(relative_rect=pygame.Rect((graph_border, graphs_panel_height + graph_border + banner_size - console_size ), (graphs_panel_width, console_size-console_input_size)),
+                                            html_text="",
                                             manager=gui_manager)
-# input_display = pygame_gui.elements.UILabel(relative_rect=pygame.Rect((0, 0), (100, 100)),
-#                                            manager=gui_manager)
+console_input = pygame_gui.elements.UITextEntryLine(relative_rect=pygame.Rect((graph_border, graphs_panel_height + graph_border + banner_size-console_input_size), (graphs_panel_width, console_input_size)),
+                                                    manager=gui_manager)
+#endregion
+
+def console_send():
+    input = console_input.get_text()
+    if input == "":
+        return
+    console_input.clear()
+    console_input.focus()
+    # Display the input
+    console_print("> " + input)
+    # Parse the input to find if there are any commands
+    
+    
+
+def console_print(text):
+    console_log.append_html_text(text + "<br>")
 
 while running:
     sleep(0.1)
@@ -90,10 +104,13 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-        elif event.type == pygame.JOYAXISMOTION:
-            # apply input to variables TODO
-            running = True
         gui_manager.process_events(event)
+        if event.type == pygame.JOYDEVICEADDED:
+            controller = pygame.joystick.Joystick(event.device_index)
+            console_print("Joystick connected")
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_RETURN:
+                console_send()
         
     gui_manager.update(time_delta)
     
@@ -110,7 +127,8 @@ while running:
     # clamp_andgles()
     
     # check that joystick input is detected
-    
+    #input_1[0] = controller.get_axis(0)
+    #input_1[1] = controller.get_axis(1)
 
     screen.fill("blue")
     gui_manager.draw_ui(screen)
