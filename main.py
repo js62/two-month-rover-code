@@ -4,6 +4,7 @@ import random
 
 import pygame_gui.elements.ui_label
 import pygame_gui.elements.ui_text_box
+from pygame_gui.core import ObjectID
 
 import rclpy
 rclpy.init()
@@ -141,6 +142,11 @@ console_log = pygame_gui.elements.UITextBox(relative_rect=pygame.Rect((0, graphs
                                             manager=gui_manager)
 console_input = pygame_gui.elements.UITextEntryLine(relative_rect=pygame.Rect((0, graphs_panel_height + banner_size-console_input_size), (graphs_panel_width, console_input_size)),
                                                     manager=gui_manager)
+
+banner_title = pygame_gui.elements.UILabel(relative_rect=pygame.Rect(((0, 0), (window_size[0],banner_size))),
+                                           text="Bob, Did He? Base Station :D",
+                                           object_id=ObjectID(class_id="@title_label"),
+                                           manager=gui_manager)
     
 #endregion
 

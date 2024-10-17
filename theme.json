@@ -56,5 +56,18 @@
             "normal_text":"#000000",
             "dark_bg":"#FFFFFF"
         }
+    },
+    "@title_label":
+    {
+        "font":
+        {
+            "size": "25",
+            "bold":"1"
+        },
+        "colours":
+        {
+            "normal_text":"#000000",
+            "dark_bg":"#245ab3"
+        }
     }
 }
