@@ -33,9 +33,16 @@ graph_size = (graphs_panel_height/2 - graph_border, graphs_panel_width/2 - graph
 input_1 = [0,0] #This is just for the left stick
 
 
+
+motor_angles=[0,0,0,0,0,0]
+IK_target_pos=[0,0,0]
+
+
 #lengths of arm segments for IK math
 length1=6.173
 length2=10
+
+# def calculate IK
 def calculate_angles(x,y,z):
     angles=[0,0,0]
 
@@ -67,11 +74,6 @@ def calculate_angles(x,y,z):
     return angles
 
 
-
-motor_angles=[0,0,0,0,0,0]
-IK_target_pos=[0,0,0]
-
-# def calculate IK
 # def calculate direct motor control
 
 running=True
@@ -82,42 +84,42 @@ clock = pygame.time.Clock()
 
 
 def setup_gui():
-    global graphs_panel, claw_panel, graph_1_background, graph_2_background, graph_3_background, graph_4_background, console_log
-#controller = None
+    global graphs_panel, claw_panel, graph_1_background, graph_2_background, graph_3_background, graph_4_background, console_log, console_input
+    #controller = None
 
-#region GUI ELEMENTS
-## CONTAINERS ##
-graphs_panel = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((window_size[0]/2+graph_border, banner_size+graph_border), (graphs_panel_width, graphs_panel_height)), 
-                                                                    manager=gui_manager)
-claw_panel = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((graph_border, banner_size+graph_border), (graphs_panel_width, graphs_panel_height -console_size)), 
-                                                                     manager=gui_manager)
+    #region GUI ELEMENTS
+    ## CONTAINERS ##
+    graphs_panel = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((window_size[0]/2+graph_border, banner_size+graph_border), (graphs_panel_width, graphs_panel_height)), 
+                                                                        manager=gui_manager)
+    claw_panel = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((graph_border, banner_size+graph_border), (graphs_panel_width, graphs_panel_height -console_size)), 
+                                                                        manager=gui_manager)
 
-## GUI ELEMENTS ##
-graph_1_background = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((graph_border/2,graph_border/2), graph_size),
+    ## GUI ELEMENTS ##
+    graph_1_background = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((graph_border/2,graph_border/2), graph_size),
+                                                        container=graphs_panel,
+                                                        visible=True,
+                                                        manager=gui_manager)
+
+    graph_2_background = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((window_size[0]/4-graph_border/2,graph_border/2), graph_size),
+                                                        container=graphs_panel,
+                                                        visible=True,
+                                                        manager=gui_manager)
+
+    graph_3_background = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((graph_border/2,(window_size[1]-banner_size)/2-graph_border/2),graph_size),
+                                                        container=graphs_panel,
+                                                        visible=True,
+                                                        manager=gui_manager)
+
+    graph_4_background = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((window_size[0]/4-graph_border/2,(window_size[1]-banner_size)/2-graph_border/2),graph_size),
                                                     container=graphs_panel,
                                                     visible=True,
                                                     manager=gui_manager)
-
-graph_2_background = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((window_size[0]/4-graph_border/2,graph_border/2), graph_size),
-                                                    container=graphs_panel,
-                                                    visible=True,
-                                                    manager=gui_manager)
-
-graph_3_background = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((graph_border/2,(window_size[1]-banner_size)/2-graph_border/2),graph_size),
-                                                    container=graphs_panel,
-                                                    visible=True,
-                                                    manager=gui_manager)
-
-graph_4_background = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((window_size[0]/4-graph_border/2,(window_size[1]-banner_size)/2-graph_border/2),graph_size),
-                                                  container=graphs_panel,
-                                                  visible=True,
-                                                  manager=gui_manager)
-console_log = pygame_gui.elements.UITextBox(relative_rect=pygame.Rect((graph_border, graphs_panel_height + graph_border + banner_size - console_size ), (graphs_panel_width, console_size-console_input_size)),
-                                            html_text="",
-                                            manager=gui_manager)
-console_input = pygame_gui.elements.UITextEntryLine(relative_rect=pygame.Rect((graph_border, graphs_panel_height + graph_border + banner_size-console_input_size), (graphs_panel_width, console_input_size)),
-                                                    manager=gui_manager)
-#endregion
+    console_log = pygame_gui.elements.UITextBox(relative_rect=pygame.Rect((graph_border, graphs_panel_height + graph_border + banner_size - console_size ), (graphs_panel_width, console_size-console_input_size)),
+                                                html_text="",
+                                                manager=gui_manager)
+    console_input = pygame_gui.elements.UITextEntryLine(relative_rect=pygame.Rect((graph_border, graphs_panel_height + graph_border + banner_size-console_input_size), (graphs_panel_width, console_input_size)),
+                                                        manager=gui_manager)
+    #endregion
 
 def console_send():
     input = console_input.get_text()
@@ -136,10 +138,10 @@ def console_send():
         else:
             positions = [float(args[1]),float(args[2]),float(args[3]),float(args[4]),float(args[5]),float(args[6])]
             ros_send.send_motor_positions(positions)
-            
-        
-    
-    
+
+
+
+
 def parse_input(input):
     args = []
     arg = ""
@@ -152,15 +154,14 @@ def parse_input(input):
     if (arg != "") & (arg != " "):
         args.append(arg)
     return args
-            
-    
-    
+
+
 
 def console_print(text):
     console_log.append_html_text(text + "<br>")
-    
 
-    
+
+
 ros_receive.set_log_data_callback(console_print)
 ros_send.set_send_positions_callback(console_print)
 
