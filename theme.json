@@ -34,8 +34,6 @@
         },
         "misc":
         {
-            "shape": "rounded_rectangle",
-            "shape_corner_radius": "10",
             "border_width": "1",
             "shadow_width": "0"
         }
@@ -45,6 +43,18 @@
         "misc":
         {
             "line_spacing": "1"
+        }
+    },
+    "label":
+    {
+        "font":
+        {
+            "bold": "1"
+        },
+        "colours":
+        {
+            "normal_text":"#000000",
+            "dark_bg":"#FFFFFF"
         }
     }
 }

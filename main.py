@@ -3,6 +3,7 @@ import math
 import random
 
 import pygame_gui.elements.ui_label
+import pygame_gui.elements.ui_text_box
 
 import rclpy
 rclpy.init()
@@ -24,17 +25,18 @@ window_size = (1280, 720)
 banner_size = 75 # This is in pixels
 console_size = 250
 console_input_size = 25
-graph_border = 10
-graph_range = 100 # This is sample size for the graphs
+graph_y_border = 25
+graph_range = 25 # This is sample size for the graphs
 graph_data = [[0],[0],[0],[0]]
+battery = 100
 
-graphs_panel_width = window_size[0]/2-(graph_border*2)
-graphs_panel_height = (window_size[1]-banner_size)-(graph_border*2)
-graph_size = (graphs_panel_height/2 - graph_border, graphs_panel_width/2 - graph_border)
-graph_origin = [(graphs_panel_width + graph_border*4, banner_size+(graph_border*2)+graph_size[1] - graph_size[1]/2),
-                (graphs_panel_width + (graph_border*4.5) + graph_size[0], banner_size+(graph_border*2)+graph_size[1] - graph_size[1]/2),
-                (graphs_panel_width + graph_border*4,banner_size+(graph_border*2)+(graph_size[1]*2) - graph_size[1]/2),
-                (graphs_panel_width + (graph_border*4.5) + graph_size[0], banner_size+(graph_border*2)+(graph_size[1]*2) - graph_size[1]/2)]
+graphs_panel_width = window_size[0]/2
+graphs_panel_height = window_size[1]-banner_size
+graph_size = (graphs_panel_width/2, graphs_panel_height/2)
+graph_origin = [(graphs_panel_width +graph_y_border, banner_size+(graph_size[1]/2)),
+                (graphs_panel_width + graph_size[0]+graph_y_border, banner_size + graph_size[1]/2),
+                (graphs_panel_width+graph_y_border, banner_size+(graph_size[1]*2) - graph_size[1]/2),
+                (graphs_panel_width + graph_size[0]+graph_y_border, banner_size+(graph_size[1]*2))]
 
 #--Debug Variables--#
 input_1 = [0,0] #This is just for the left stick
@@ -90,35 +92,54 @@ clock = pygame.time.Clock()
 
 #region GUI ELEMENTS
 ## CONTAINERS ##
-graphs_panel = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((window_size[0]/2+graph_border, banner_size+graph_border), (graphs_panel_width, graphs_panel_height)), 
+graphs_panel = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((graphs_panel_width, banner_size), (graphs_panel_width, graphs_panel_height)), 
                                                                     manager=gui_manager)
-claw_panel = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((graph_border, banner_size+graph_border), (graphs_panel_width, graphs_panel_height -console_size)), 
+claw_panel = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((0, banner_size), (graphs_panel_width, graphs_panel_height -console_size)), 
                                                                     manager=gui_manager)
 
 ## GUI ELEMENTS ##
-graph_1_background = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((graph_border/2,graph_border/2), graph_size),
+imu_graph_background = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((0,0), graph_size),
                                                     container=graphs_panel,
                                                     visible=True,
                                                     manager=gui_manager)
 
-graph_2_background = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((window_size[0]/4-graph_border/2,graph_border/2), graph_size),
+imu_graph_label = pygame_gui.elements.UILabel(relative_rect=pygame.Rect(((graph_size[1]/2) - 125, 5), (250,25)),
+                                              text="IMU Sensor",
+                                              container=imu_graph_background,
+                                              manager=gui_manager)
+
+temp_graph_background = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((graphs_panel_width/2,0), graph_size),
                                                     container=graphs_panel,
                                                     visible=True,
                                                     manager=gui_manager)
 
-graph_3_background = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((graph_border/2,(window_size[1]-banner_size)/2-graph_border/2),graph_size),
+temp_graph_label = pygame_gui.elements.UILabel(relative_rect=pygame.Rect(((graph_size[1]/2) - 125, 5), (250,25)),
+                                              text="Temp Sensor",
+                                              container=temp_graph_background,
+                                              manager=gui_manager)
+
+pressure_graph_background = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((0,graphs_panel_height/2),graph_size),
                                                     container=graphs_panel,
                                                     visible=True,
                                                     manager=gui_manager)
+pressure_graph_label = pygame_gui.elements.UILabel(relative_rect=pygame.Rect(((graph_size[1]/2) - 125, 5), (250,25)),
+                                              text="Pressure Sensor",
+                                              container=pressure_graph_background,
+                                              manager=gui_manager)
 
-graph_4_background = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((window_size[0]/4-graph_border/2,(window_size[1]-banner_size)/2-graph_border/2),graph_size),
+battery_graph_background = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((graphs_panel_width/2,graphs_panel_height/2),graph_size),
                                                 container=graphs_panel,
                                                 visible=True,
                                                 manager=gui_manager)
-console_log = pygame_gui.elements.UITextBox(relative_rect=pygame.Rect((graph_border, graphs_panel_height + graph_border + banner_size - console_size ), (graphs_panel_width, console_size-console_input_size)),
+battery_graph_label = pygame_gui.elements.UILabel(relative_rect=pygame.Rect(((graph_size[1]/2) - 125, 5), (250,25)),
+                                              text="Battery",
+                                              container=battery_graph_background,
+                                              manager=gui_manager)
+
+console_log = pygame_gui.elements.UITextBox(relative_rect=pygame.Rect((0, graphs_panel_height + banner_size - console_size ), (graphs_panel_width, console_size-console_input_size)),
                                             html_text="",
                                             manager=gui_manager)
-console_input = pygame_gui.elements.UITextEntryLine(relative_rect=pygame.Rect((graph_border, graphs_panel_height + graph_border + banner_size-console_input_size), (graphs_panel_width, console_input_size)),
+console_input = pygame_gui.elements.UITextEntryLine(relative_rect=pygame.Rect((0, graphs_panel_height + banner_size-console_input_size), (graphs_panel_width, console_input_size)),
                                                     manager=gui_manager)
     
 #endregion
@@ -178,7 +199,7 @@ def update_graph(graph_values, new_data):
 def graph_offset(graph, origin):
     output = []
     for i in range(len(graph)):
-        output.append(((i*(graph_size[1]/(graph_range-1))+origin[0])-graph_border/4, origin[1] - graph[i]*2))
+        output.append(((i*((graph_size[1]-graph_y_border-2)/(graph_range-1))+origin[0]), origin[1] - graph[i]*2))
     return output
         
     
@@ -214,10 +235,11 @@ while running:
     screen.fill("navy blue")
     gui_manager.draw_ui(screen)
     ## JUST FOR TESTING
-    update_graph(graph_data[0], random.randint(-40, 40))
+    battery -= time_delta
+    update_graph(graph_data[0], random.randint(-60, 40))
     update_graph(graph_data[1], random.randint(-40, 40))
     update_graph(graph_data[2], random.randint(-40, 40))
-    update_graph(graph_data[3], random.randint(-40, 40))
+    update_graph(graph_data[3], battery)
     draw_graphs()
     #displaying logs
     #displaying motor angles and stuff
