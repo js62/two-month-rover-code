@@ -162,12 +162,11 @@ def console_send():
     # separate string into array of arguments
     args = parse_input(input)
     if args[0] == "send":
-        if len(args) != 7:
-            console_print("Error: must send exactly 6 motor positions, separated by spaces.")
+        if len(args) != 6:
+            console_print("Error: must send exactly 5 motor positions, separated by spaces.")
         else:
-            positions = [float(args[1]),float(args[2]),float(args[3]),float(args[4]),float(args[5]),float(args[6])]
+            positions = [float(args[1]),float(args[2]),float(args[3]),float(args[4]),float(args[5])]
             ros_send.send_motor_positions(positions)
-
 
 
 
@@ -210,7 +209,12 @@ def graph_offset(graph, origin):
         
     
 def draw_graphs():
+    
+    # Draw three graphs for the imu sensor
     pygame.draw.lines(screen, "green", False, graph_offset(graph_data[0], graph_origin[0]), 1)
+    pygame.draw.lines(screen, "green", False, graph_offset(graph_data[0], graph_origin[0]), 1)
+    pygame.draw.lines(screen, "green", False, graph_offset(graph_data[0], graph_origin[0]), 1)
+    
     pygame.draw.lines(screen, "red", False, graph_offset(graph_data[1], graph_origin[1]), 1)
     pygame.draw.lines(screen, "cyan", False, graph_offset(graph_data[2], graph_origin[2]), 1)
     pygame.draw.lines(screen, "magenta", False, graph_offset(graph_data[3], graph_origin[3]), 1)
@@ -244,7 +248,7 @@ while running:
     battery -= time_delta
     update_graph(graph_data[0], random.randint(-60, 40))
     update_graph(graph_data[1], random.randint(-40, 40))
-    update_graph(graph_data[2], random.randint(-40, 40))
+    update_graph(graph_data[2], random.randrange(-40, 40))
     update_graph(graph_data[3], battery)
     draw_graphs()
     #displaying logs
