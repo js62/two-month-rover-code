@@ -1,9 +1,0 @@
-
-.vs/VSWorkspaceState.json
-.vs/ProjectSettings.json
-.vs/two-month-rover-code/v16/Browse.VC.db
-.vs/two-month-rover-code/v16/.suo
-.vs/slnx.sqlite
-__pycache__/ros_receive.cpython-310.pyc
-__pycache__/ros_send.cpython-310.pyc
-__pycache__/ros_receive.cpython-310.pyc
