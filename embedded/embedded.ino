@@ -1,12 +1,14 @@
-#include <string>
-#include <fstream>
-#include 
+// SD card notes
+// pin 27: SD CS
+// pin 26: MISO - data sent from SD to pico
+// pin 25: MOSI - data sent from pico to SD
+// pin 24: CLOCK
 
+// TODO: check page 275 of the raspberry pi pico documentation
 
 const uint32_t BLINK_INTERVAL = 1000;
 uint32_t lastBlink = 0;
 bool ledState = false;
-ofstream sd_file;
 
 //These are the max and min motor positions! Set properly before running, so arm doesn't break!!!
 //They should be numbers from 0 to 1
@@ -37,9 +39,6 @@ void setup() {
 
   // Turn LED off after serial initialization
   digitalWrite(LED_BUILTIN, ledState);
-
-  // Open the sd card file
-  sd_file.open("")
 }
 
 void loop() {
