@@ -10,8 +10,12 @@ def set_send_positions_callback(f):
     send_positions_callback=f
 
 def send_motor_positions(motor_poses):
+
+    #TODO convert motor_poses from angles to GPIO pin values
+    pin_vals=motor_poses
+
     message_text=""
-    for i,t in enumerate(motor_poses):
+    for i,t in enumerate(pin_vals):
         if i:
             message_text+=","
         message_text+=str(round(t,4))
@@ -20,5 +24,4 @@ def send_motor_positions(motor_poses):
     message.data=message_text
     motor_control_topic.publish(message)
     send_positions_callback("Sent to libre: " + message.data)
-    
-    
+

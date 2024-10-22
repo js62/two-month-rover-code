@@ -42,9 +42,10 @@ graph_origin = [(graphs_panel_width +graph_y_border, banner_size+(graph_size[1]/
 #--Debug Variables--#
 input_1 = [0,0] #This is just for the left stick
 
+control_method="" # either "ik" or "direct" or "" for none
 
 #region IK CALCULATIONS
-motor_angles=[0,0,0,0,0,0]
+motor_angles=[0,0,0,0,0] #the first and the last aren't actually angles because they're controlling cd motors
 IK_target_pos=[0,0,0]
 
 
@@ -52,7 +53,7 @@ IK_target_pos=[0,0,0]
 length1=6.173
 length2=10
 
-def calculate_angles(x,y,z):
+def calculate_IK_angles(x,y,z):
     angles=[0,0,0]
 
     dist_squared=(x**2 + y**2 + z**2)
@@ -90,6 +91,9 @@ pygame.init()
 screen = pygame.display.set_mode(window_size)
 gui_manager = pygame_gui.UIManager(window_size, "theme.json")
 clock = pygame.time.Clock()
+
+pygame.joystick.init()
+# pygame.joystick.Joystick(0)
 
 #region GUI ELEMENTS
 ## CONTAINERS ##
@@ -151,6 +155,7 @@ banner_title = pygame_gui.elements.UILabel(relative_rect=pygame.Rect(((0, 0), (w
 #endregion
 
 def console_send():
+    global running
     input = console_input.get_text()
     if input == "":
         return
@@ -167,6 +172,8 @@ def console_send():
         else:
             positions = [float(args[1]),float(args[2]),float(args[3]),float(args[4]),float(args[5])]
             ros_send.send_motor_positions(positions)
+    elif args[0]=="exit":
+        running=False
 
 
 
@@ -254,11 +261,13 @@ while running:
     #displaying logs
     #displaying motor angles and stuff
     
-    # if IK:
-    #     calculate_IK()
-    # else:
+    if control_method=="ik":
+        # index 0 and index 4 are not set here (because they're for the cd motors)
+        motor_angles[1],motor_angles[2],motor_angles[3]=calculate_IK_angles(IK_target_pos[0],IK_target_pos[1],IK_target_pos[2])
+    
+    # if control_method=="direct":
     #     direct_motor_control()
-    # clamp_andgles()
+    # clamp_andgles() #May not be necessary since this is done on the pico
     
     # check that joystick input is detected
     #input_1[0] = controller.get_axis(0)
