@@ -42,45 +42,77 @@ graph_origin = [(graphs_panel_width +graph_y_border, banner_size+(graph_size[1]/
 #--Debug Variables--#
 input_1 = [0,0] #This is just for the left stick
 
-control_method="" # either "ik" or "direct" or "" for none
+control_method="ik" # either "ik" or "direct" or "" for none
 
 #region IK CALCULATIONS
 motor_angles=[0,0,0,0,0] #the first and the last aren't actually angles because they're controlling cd motors
-IK_target_pos=[0,0,0]
+IK_target_pos=[15,-10,0] # x, y, angle of claw
 
+def clamp(num,min,max):
+    if num<min:
+        num=min
+    if num>max:
+        num=max
+    return num
 
 #lengths of arm segments for IK math
 length1=6.173
 length2=10
+length3=4
 
-def calculate_IK_angles(x,y,z):
+def calculate_IK_angles():
+    global IK_target_pos, length1, length2, length3
+
+    tx=IK_target_pos[0]-math.cos(IK_target_pos[2])*length3
+    ty=IK_target_pos[1]-math.sin(IK_target_pos[2])*length3
     angles=[0,0,0]
 
-    dist_squared=(x**2 + y**2 + z**2)
+    dist_squared=(tx**2 + ty**2)
 
-    if dist_squared**0.5>=length1+length2-0.1:
-        d=dist_squared**0.5/(length1+length2-0.1)
-        x/=d
-        y/=d
-        z/=d
-        dist_squared=(x**2 + y**2 + z**2)
-    if dist_squared**0.5<=abs(length1-length2)+0.1:
-        d=dist_squared**0.5/(abs(length1-length2)+0.1)
-        x/=d
-        y/=d
-        z/=d
-        dist_squared=(x**2 + y**2 + z**2)
+    if dist_squared**0.5>=length1+length2-0.01:
+        d=dist_squared**0.5/(length1+length2-0.01)
+        tx/=d
+        ty/=d
+        dist_squared=(tx**2 + ty**2)
+    if dist_squared**0.5<=abs(length1-length2)+0.01:
+        d=(abs(length1-length2)+0.01)/dist_squared**0.5
+        tx*=d
+        ty*=d
+        dist_squared=(tx**2 + ty**2)
+    
+    if dist_squared**0.5<=length2:
+        d=length2/dist_squared**0.5
+        tx*=d
+        ty*=d
+        dist_squared=(tx**2 + ty**2)
 
-    angles[0]=math.pi/2+math.atan2(y,-x)
-    y=(x**2+y**2)**0.5
+    angles[1]=math.pi-math.acos((length1**2+length2**2-dist_squared)/(2*length1*length2)) #this is just the law of cosins salved for the angle
+    
+    a=math.atan2(tx,-ty)
+    b=math.asin(math.sin(angles[1])/dist_squared**0.5*length2) #this is the law of sines salved for the angle
+    
+    angles[0]=a-math.pi/2-b
 
-    angles[2]=math.pi-math.acos((length1**2+length2**2-dist_squared)/(2*length1*length2)) #this is just the law of cosins salved for the angle
-    
-    a=math.atan2(z,y)
-    b=math.asin(math.sin(angles[2])/dist_squared**0.5*length2) #this is the law of sines salved for the angle
-    
-    angles[1]=a-b+math.pi/2
-    
+    angles[2]=IK_target_pos[2]-angles[1]-angles[0]
+
+
+
+
+    #recalculate target position based on angles
+    # IK_target_pos[0]=math.cos(angles[0])*length1+math.cos(angles[0]+angles[1])*length2+math.cos(angles[0]+angles[1]+angles[2])*length3
+    # IK_target_pos[1]=math.sin(angles[0])*length1+math.sin(angles[0]+angles[1])*length2+math.sin(angles[0]+angles[1]+angles[2])*length3
+    # IK_target_pos[2]=angles[0]+angles[1]+angles[2]
+
+
+
+    #clamp angles
+
+    # angles[0]=clamp(angles[0],-math.pi/2,math.pi/4)
+    # angles[1]=clamp(angles[1],0,math.pi/180*70)
+    # angles[2]=clamp(angles[2],-math.pi/2,math.pi/2)
+
+
+
     return angles
 #endregion
 
@@ -93,7 +125,7 @@ gui_manager = pygame_gui.UIManager(window_size, "theme.json")
 clock = pygame.time.Clock()
 
 pygame.joystick.init()
-# pygame.joystick.Joystick(0)
+controller=False
 
 #region GUI ELEMENTS
 ## CONTAINERS ##
@@ -155,7 +187,6 @@ banner_title = pygame_gui.elements.UILabel(relative_rect=pygame.Rect(((0, 0), (w
 #endregion
 
 def console_send():
-    global running
     input = console_input.get_text()
     if input == "":
         return
@@ -173,7 +204,11 @@ def console_send():
             positions = [float(args[1]),float(args[2]),float(args[3]),float(args[4]),float(args[5])]
             ros_send.send_motor_positions(positions)
     elif args[0]=="exit":
+        global running
         running=False
+    elif args[0]=="control":
+        global control_method
+        control_method=args[1]
 
 
 
@@ -226,6 +261,26 @@ def draw_graphs():
     pygame.draw.lines(screen, "cyan", False, graph_offset(graph_data[2], graph_origin[2]), 1)
     pygame.draw.lines(screen, "magenta", False, graph_offset(graph_data[3], graph_origin[3]), 1)
     
+    #draw arm position
+    scale=20
+    pos0=[40, (graphs_panel_height/2)-banner_size]
+    pos1=pos0[:]
+    pos1[0]+=length1*math.cos(motor_angles[1])*scale
+    pos1[1]+=length1*math.sin(motor_angles[1])*scale
+    pygame.draw.line(screen, "black", (pos0[0],pos0[1]), (pos1[0],pos1[1]), 5)
+
+    pos2=pos1[:]
+    pos2[0]+=length2*math.cos(motor_angles[1]+motor_angles[2])*scale
+    pos2[1]+=length2*math.sin(motor_angles[1]+motor_angles[2])*scale
+    pygame.draw.line(screen, "black", (pos1[0],pos1[1]), (pos2[0],pos2[1]), 5)
+    
+    pos3=pos2[:]
+    pos3[0]+=length3*math.cos(motor_angles[1]+motor_angles[2]+motor_angles[3])*scale
+    pos3[1]+=length3*math.sin(motor_angles[1]+motor_angles[2]+motor_angles[3])*scale
+    pygame.draw.line(screen, "black", (pos2[0],pos2[1]), (pos3[0],pos3[1]), 5)
+
+    pygame.draw.circle(screen, "black", (IK_target_pos[0]*scale+pos0[0],IK_target_pos[1]*scale+pos0[1]),4)
+
     
 ros_receive.set_log_data_callback(console_print)
 ros_send.set_send_positions_callback(console_print)
@@ -263,15 +318,17 @@ while running:
     
     if control_method=="ik":
         # index 0 and index 4 are not set here (because they're for the cd motors)
-        motor_angles[1],motor_angles[2],motor_angles[3]=calculate_IK_angles(IK_target_pos[0],IK_target_pos[1],IK_target_pos[2])
+        motor_angles[1],motor_angles[2],motor_angles[3]=calculate_IK_angles()
+        if controller:
+            if controller.get_axis(0)**2+controller.get_axis(1)**2>0.02:
+                IK_target_pos[0]+=controller.get_axis(0)
+                IK_target_pos[1]+=controller.get_axis(1)
+            IK_target_pos[2]+=controller.get_hat(0)[1]/10
     
     # if control_method=="direct":
     #     direct_motor_control()
     # clamp_andgles() #May not be necessary since this is done on the pico
-    
-    # check that joystick input is detected
-    #input_1[0] = controller.get_axis(0)
-    #input_1[1] = controller.get_axis(1)
+
     
     pygame.display.update()
 
