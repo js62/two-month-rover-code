@@ -1,3 +1,4 @@
+import sys
 from time import sleep #tmp
 import math
 import random
@@ -11,6 +12,8 @@ rclpy.init()
 
 import ros_send
 import ros_receive
+
+import ssh_in_libre
 
 import pygame
 import pygame_gui
@@ -69,47 +72,45 @@ def calculate_IK_angles():
 
     dist_squared=(tx**2 + ty**2)
 
-    if dist_squared**0.5>=length1+length2-0.01:
-        d=dist_squared**0.5/(length1+length2-0.01)
-        tx/=d
-        ty/=d
-        dist_squared=(tx**2 + ty**2)
-    if dist_squared**0.5<=abs(length1-length2)+0.01:
-        d=(abs(length1-length2)+0.01)/dist_squared**0.5
-        tx*=d
-        ty*=d
-        dist_squared=(tx**2 + ty**2)
-    
-    if dist_squared**0.5<=length2:
-        d=length2/dist_squared**0.5
-        tx*=d
-        ty*=d
-        dist_squared=(tx**2 + ty**2)
 
-    angles[1]=math.pi-math.acos((length1**2+length2**2-dist_squared)/(2*length1*length2)) #this is just the law of cosins salved for the angle
+    angles[1]=math.pi-math.acos(clamp((length1**2+length2**2-dist_squared)/(2*length1*length2),-1,1)) #this is just the law of cosins salved for the angle
+    angles[1]=clamp(angles[1],0,math.pi/180*70)
     
     a=math.atan2(tx,-ty)
-    b=math.asin(math.sin(angles[1])/dist_squared**0.5*length2) #this is the law of sines salved for the angle
+    b=math.asin(clamp(math.sin(angles[1])/dist_squared**0.5*length2,-1,1)) #this is the law of sines salved for the angle
     
     angles[0]=a-math.pi/2-b
+    angles[0]=clamp(angles[0],-math.pi/2,math.pi/4)
 
     angles[2]=IK_target_pos[2]-angles[1]-angles[0]
+    angles[2]=clamp(angles[2],-math.pi/2,math.pi/2)
+
+
+    IK_target_pos[2]=clamp(IK_target_pos[2],angles[0]+angles[1]+angles[2]-0.1,angles[0]+angles[1]+angles[2]+0.1)
 
 
 
 
     #recalculate target position based on angles
-    # IK_target_pos[0]=math.cos(angles[0])*length1+math.cos(angles[0]+angles[1])*length2+math.cos(angles[0]+angles[1]+angles[2])*length3
-    # IK_target_pos[1]=math.sin(angles[0])*length1+math.sin(angles[0]+angles[1])*length2+math.sin(angles[0]+angles[1]+angles[2])*length3
-    # IK_target_pos[2]=angles[0]+angles[1]+angles[2]
+    p=[0,0]
+    p[0]=math.cos(angles[0])*length1+math.cos(angles[0]+angles[1])*length2+math.cos(angles[0]+angles[1]+angles[2])*length3
+    p[1]=math.sin(angles[0])*length1+math.sin(angles[0]+angles[1])*length2+math.sin(angles[0]+angles[1]+angles[2])*length3
 
 
 
-    #clamp angles
+    min_dist=(p[0]**2+p[1]**2)**0.5*0.95
 
-    # angles[0]=clamp(angles[0],-math.pi/2,math.pi/4)
-    # angles[1]=clamp(angles[1],0,math.pi/180*70)
-    # angles[2]=clamp(angles[2],-math.pi/2,math.pi/2)
+    max_dist=(p[0]**2+p[1]**2)**0.5*1.05
+
+    if ((IK_target_pos[0]**2+IK_target_pos[1]**2)**0.5)>=max_dist:
+        d=((IK_target_pos[0]**2+IK_target_pos[1]**2)**0.5)/max_dist
+        IK_target_pos[0]/=d
+        IK_target_pos[1]/=d
+    if ((IK_target_pos[0]**2+IK_target_pos[1]**2)**0.5)<min_dist:
+        d=min_dist/((IK_target_pos[0]**2+IK_target_pos[1]**2)**0.5)
+        print(d)
+        IK_target_pos[0]*=d
+        IK_target_pos[1]*=d
 
 
 
@@ -298,6 +299,8 @@ while running:
         if event.type == pygame.JOYDEVICEADDED:
             controller = pygame.joystick.Joystick(event.device_index)
             console_print("Joystick connected")
+        if event.type == pygame.JOYDEVICEREMOVED:
+            console_print("Joystick disconnected")
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_RETURN:
                 console_send()
@@ -321,8 +324,8 @@ while running:
         motor_angles[1],motor_angles[2],motor_angles[3]=calculate_IK_angles()
         if controller:
             if controller.get_axis(0)**2+controller.get_axis(1)**2>0.02:
-                IK_target_pos[0]+=controller.get_axis(0)
-                IK_target_pos[1]+=controller.get_axis(1)
+                IK_target_pos[0]+=controller.get_axis(0)/3
+                IK_target_pos[1]+=controller.get_axis(1)/2
             IK_target_pos[2]+=controller.get_hat(0)[1]/10
     
     # if control_method=="direct":
@@ -333,4 +336,5 @@ while running:
     pygame.display.update()
 
 
+ssh_in_libre.kill()
 rclpy.shutdown()

@@ -37,16 +37,16 @@ def process_data(m):
         elif data_type=="log":
             log_data_callback(data)
         else:
-            print(f"Error: Unknown data type: '{data_type}' received in 'picofeedback'")
+            print(f"Error: Unknown data type: '{data_type}' received in 'pico/output'")
     else:
-        print(f"Error: Can't parse picofeedback data: '{m.data}'. Wrong number of colons.")
+        print(f"Error: Can't parse pico/output data: '{m.data}'. Wrong number of colons.")
 
 
 
 
 def listener():
     node=Node("groundstationlistener")
-    node.create_subscription(String,"picofeedback",process_data,10)
+    node.create_subscription(String,"pico/output",process_data,10)
     rclpy.spin(node)
 
 
