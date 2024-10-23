@@ -1,4 +1,5 @@
 #include <string>
+#include <Servo.h>
 #include <SPI.h>
 #include <SD.h>
 #include <Wire.h>
@@ -12,13 +13,30 @@
 #define I2C_SCL_PIN 3
 #define WIRE Wire1
 #define SEALEVELPRESSURE_HPA (1013.25)
+#define MOTOR_DRIVER_BASE_IN1 14
+#define MOTOR_DRIVER_BASE_IN2 15
+#define MOTOR_DRIVER_BASE_PWM 12
+#define MOTOR_DRIVER_CLAW_IN1 7 // these two just for direction
+#define MOTOR_DRIVER_CLAW_IN2 6
+#define MOTOR_DRIVER_CLAW_PWM 11 // These are GPIO nums
+
+
 // SD card notes
 // pin 26: SD CS
 // pin 25: MISO - data sent from SD to pico
 // pin 24: MOSI - data sent from pico to SD
 // pin 23: CLOCK
 
-// TODO: check page 275 of the raspberry pi pico documentation
+
+
+// Motor driver has five modes:
+// IN1/IN2
+// CW: LH
+// CCW: HL
+// Short Brake: HH
+// Stop: LL
+// Standby: standby pin is L, but we didn't wire it 0_o
+// Additionally, setting PWM to L causes short brake, unless on standby
 
 const uint32_t BLINK_INTERVAL = 1000;
 uint32_t lastBlink = 0;
@@ -30,26 +48,46 @@ const int chipSelect = 21;
 //They should be numbers from 0 to 1
 // Actually, Alex said they range from 0-255
 
-float maxVals[5]={0.9,0.9,0.9,0.9,0.9};
-float minVals[5]={0.1,0.1,0.1,0.1,0.1};
+float maxVals[3]={180,180,180};
+float minVals[3]={0,0,0};
 
 // Also make sure these are set properly!
-int motorPinNums[5]={0,1,6,7,14};
-int sensorPinNums[3]={3,0,0};
+int servoPinNums[3]={0,1,4}; // these are set to GPIO servo outs 0-2
+Servo servos[3];
 
 Adafruit_BNO055 bno = Adafruit_BNO055(55, 0x28, &WIRE);
 Adafruit_BMP3XX bmp;
 
 void setup() {
+  // Configure serial transport
+  Serial.begin(115200);
+  delay(1000);
   // Initialize LED_BUILTIN as an output
   pinMode(LED_BUILTIN, OUTPUT);
   // Turn LED on for initialization
   digitalWrite(LED_BUILTIN, !ledState);
 
+  // setup motor driver pins
+  gpio_set_function(MOTOR_DRIVER_BASE_PWM, GPIO_FUNC_PWM);
+  gpio_set_function(MOTOR_DRIVER_CLAW_PWM, GPIO_FUNC_PWM);
+  pinMode(MOTOR_DRIVER_BASE_PWM, OUTPUT);
+  pinMode(MOTOR_DRIVER_CLAW_PWM, OUTPUT);
+  pinMode(MOTOR_DRIVER_BASE_IN1, OUTPUT);
+  pinMode(MOTOR_DRIVER_BASE_IN2, OUTPUT);
+  pinMode(MOTOR_DRIVER_CLAW_IN1, OUTPUT);
+  pinMode(MOTOR_DRIVER_CLAW_IN2, OUTPUT);
 
-  // setup motor pins
-  for (int i =0;i<5;i++){
-    pinMode(motorPinNums[i],OUTPUT);
+  // Reset pins to L, just in case
+  digitalWrite(MOTOR_DRIVER_BASE_IN1, LOW);
+  digitalWrite(MOTOR_DRIVER_BASE_IN2, LOW);
+  digitalWrite(MOTOR_DRIVER_CLAW_IN1, LOW);
+  digitalWrite(MOTOR_DRIVER_CLAW_IN2, LOW);
+
+  Serial.println("log:Setup motor pins");
+
+  // setup servo pins
+  for (int i =0;i<3;i++){
+    servos[i].attach(servoPinNums[i]);
   }
 
   // setup sensor pin
@@ -66,33 +104,27 @@ void setup() {
   if (!bno.begin())
   {
     /* There was a problem detecting the BNO055 ... check your connections */
-    Serial.print("Ooops, no BNO055 detected ... Check your wiring or I2C ADDR!");
+    Serial.print("log:Ooops, no BNO055 detected ... Check your wiring or I2C ADDR!");
     while (1);
   }else{
-    Serial.println("BNO055 connected");
+    Serial.println("log:BNO055 connected");
   }
 
-  Serial.println("Adafruit BMP388 / BMP390 test");
+  Serial.println("log:Adafruit BMP388 / BMP390 test");
 
   if (!bmp.begin_I2C(0x77, &Wire1)) {   // hardware I2C mode, can pass in address & alt Wire
   //if (! bmp.begin_SPI(BMP_CS)) {  // hardware SPI mode  
   //if (! bmp.begin_SPI(BMP_CS, BMP_SCK, BMP_MISO, BMP_MOSI)) {  // software SPI mode
-    Serial.println("Could not find a valid BMP3 sensor, check wiring!");
-    while (1);
+    Serial.println("log:Could not find a valid BMP3 sensor, check wiring!");
+    // while (1);
   }
-  Serial.println("BMP388 connected");
+  Serial.println("log:BMP388 connected");
   bmp.setTemperatureOversampling(BMP3_OVERSAMPLING_8X);
   bmp.setPressureOversampling(BMP3_OVERSAMPLING_4X);
   bmp.setIIRFilterCoeff(BMP3_IIR_FILTER_COEFF_3);
   bmp.setOutputDataRate(BMP3_ODR_50_HZ);
-  // Configure serial transport
-  Serial.begin(115200);
-  delay(1000);
 
   // Initialize SD card
-
-  while (!Serial);
-
   // Serial.print("Initializing SD card...");
 
   // if (!SD.begin(chipSelect)) {
@@ -131,8 +163,9 @@ void loop() {
     // expecting input in the form: motor:1.234,1.234,1.234,1.234,1.234
     command.trim();
     String type = command.substring(0,command.indexOf(":"));
-
-    if (type == "motor"){
+    if (type == "ping"){
+      Serial.println("pong");
+    }else if (type == "motor"){
 
       String temp[5] = {""};
 
@@ -157,7 +190,8 @@ void loop() {
       
       //clamp values so they are in the right range and wont physically break the arm!
 
-      for (int i = 0; i<5; i++){
+      // servo values, 0-2
+      for (int i = 0; i<3; i++){
         if (values[i]>maxVals[i]){
           values[i]=maxVals[i];
         }
@@ -166,19 +200,55 @@ void loop() {
         }
       }
 
+      // motor values, 3-4
+      // BASE directions
+      // if(values[3] > 0){
+      //   // CW
+      //   digitalWrite(MOTOR_DRIVER_BASE_IN2, HIGH);
+      //   digitalWrite(MOTOR_DRIVER_BASE_IN1, LOW);
+      // }else if(values[3] < 0){
+      //   // CCW
+      //   digitalWrite(MOTOR_DRIVER_BASE_IN1, HIGH);
+      //   digitalWrite(MOTOR_DRIVER_BASE_IN2, LOW);
+      // }else{
+      //   // STOP
+      //   digitalWrite(MOTOR_DRIVER_BASE_IN1, LOW);
+      //   digitalWrite(MOTOR_DRIVER_BASE_IN1, LOW);
+      // }
+
+      // // CLAW
+      // if(values[4] > 0){
+      //   // CW
+      //   digitalWrite(MOTOR_DRIVER_CLAW_IN2, HIGH);
+      //   digitalWrite(MOTOR_DRIVER_CLAW_IN1, LOW);
+      // }else if(values[4] < 0){
+      //   // CCW
+      //   digitalWrite(MOTOR_DRIVER_CLAW_IN1, HIGH);
+      //   digitalWrite(MOTOR_DRIVER_CLAW_IN2, LOW);
+      // }else{
+      //   // STOP
+      //   digitalWrite(MOTOR_DRIVER_CLAW_IN1, LOW);
+      //   digitalWrite(MOTOR_DRIVER_CLAW_IN1, LOW);
+      // }
 
       //set motor positions to values
 
-      for (int i =0;i<5;i++){
-        analogWrite(motorPinNums[i],values[i]);
+      for (int i =0;i<3;i++){
+        servos[i].write(values[i]);
       }
+
+      // digitalWrite(MOTOR_DRIVER_BASE_IN1, HIGH);
+      // digitalWrite(MOTOR_DRIVER_BASE_IN2, LOW);
+      // analogWrite(MOTOR_DRIVER_BASE_PWM, 230);
+      //analogWrite(MOTOR_DRIVER_CLAW_PWM, abs(values[4]));
+
     }
 
 
   }
 
   // Display sensor data
-  Serial.println(get_sensors());
+  //Serial.println("log_data:" + get_sensors());
   delay(250);
 }
 
@@ -251,13 +321,6 @@ String printEvent(sensors_event_t* event) {
   data += ",";
   return data;
 }
-
-
-// String get_sensor_data(){
-//   WIRE.
-// }
-
-
 
 void write_to_SD(String dataline, String filename){
     File datafile = SD.open(filename, FILE_WRITE);
