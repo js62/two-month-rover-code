@@ -8,6 +8,11 @@ motor_control_topic=node.create_publisher(String,"pico/command",10)
 
 
 def send_motor_positions(motor_poses):
+    old=motor_poses[:]
+    motor_poses=old[1:4]
+    motor_poses.append(old[0])
+    motor_poses.append(old[4])
+    
 
     pin_vals=motor_poses
 
@@ -15,15 +20,17 @@ def send_motor_positions(motor_poses):
     for i,t in enumerate(pin_vals):
         if i:
             message_text+=","
-        if i==0:
-            pass
-        if i==1:
+        
+
+        if i==0: #joint 1
             t*=180/math.pi
-        if i==2:
+        if i==1: #joint 2
             t*=180/math.pi
             t*=180/70
-        if i==3:
+        if i==2: #joint 3
             t*=180/math.pi
+        if i==3:
+            pass
         if i==4:
             pass
         message_text+=str(round(t,4))

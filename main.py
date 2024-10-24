@@ -1,5 +1,5 @@
 import sys
-from time import sleep #tmp
+import time
 import math
 import random
 
@@ -20,10 +20,6 @@ import pygame_gui
 
 pygame.display.set_caption("Bob, Did He? Rover Base Station")
 
-#define callback functions for ros_receive
-# def handle_log_data(data):
-#     print("Log data: ",data)
-
 #--GUI Variables--#
 window_size = (1280, 720)
 banner_size = 75 # This is in pixels
@@ -31,7 +27,7 @@ console_size = 250
 console_input_size = 25
 graph_y_border = 25
 graph_range = 25 # This is sample size for the graphs
-graph_data = [[0],[0],[0],[0]]
+graph_data = [[0],[0],[0],[0],[0],[0]]
 battery = 100
 
 graphs_panel_width = window_size[0]/2
@@ -44,9 +40,20 @@ graph_origin = [(graphs_panel_width +graph_y_border, banner_size+(graph_size[1]/
 
 #--Debug Variables--#
 
-control_method="ik" # either "ik" or "direct" or "" for none
+
+
+
+def write_line_to_log_file(s):
+    path="log_data.csv"
+    file=open(path,"a")
+    file.writelines(["\n",str(s)])
+
+write_line_to_log_file(time.ctime())
+write_line_to_log_file("ACCELERATION_x,ACCELERATION_y,ACCELERATION_z,PRESSURE,TEMPERATURE")
 
 #region IK CALCULATIONS
+control_method="ik" # either "ik" or "direct" or "" for none
+
 motor_angles=[0,0,0,0,0] #the first and the last aren't actually angles because they're controlling cd motors
 IK_target_pos=[15,-10,0] # x, y, angle of claw
 
@@ -68,6 +75,10 @@ def calculate_IK_angles():
     tx=IK_target_pos[0]-math.cos(IK_target_pos[2])*length3
     ty=IK_target_pos[1]-math.sin(IK_target_pos[2])*length3
     angles=[0,0,0]
+
+    if tx<0.1:
+        IK_target_pos[0]+=1
+        tx+=1
 
     dist_squared=(tx**2 + ty**2)
 
@@ -140,7 +151,7 @@ imu_graph_background = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((0,
                                                     manager=gui_manager)
 
 imu_graph_label = pygame_gui.elements.UILabel(relative_rect=pygame.Rect(((graph_size[1]/2) - 125, 5), (250,25)),
-                                              text="IMU Sensor",
+                                              text="Acceleration",
                                               container=imu_graph_background,
                                               manager=gui_manager)
 
@@ -150,7 +161,7 @@ temp_graph_background = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect((g
                                                     manager=gui_manager)
 
 temp_graph_label = pygame_gui.elements.UILabel(relative_rect=pygame.Rect(((graph_size[1]/2) - 125, 5), (250,25)),
-                                              text="Temp Sensor",
+                                              text="Temperature",
                                               container=temp_graph_background,
                                               manager=gui_manager)
 
@@ -159,7 +170,7 @@ pressure_graph_background = pygame_gui.elements.UIPanel(relative_rect=pygame.Rec
                                                     visible=True,
                                                     manager=gui_manager)
 pressure_graph_label = pygame_gui.elements.UILabel(relative_rect=pygame.Rect(((graph_size[1]/2) - 125, 5), (250,25)),
-                                              text="Pressure Sensor",
+                                              text="Pressure",
                                               container=pressure_graph_background,
                                               manager=gui_manager)
 
@@ -168,7 +179,7 @@ battery_graph_background = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect
                                                 visible=True,
                                                 manager=gui_manager)
 battery_graph_label = pygame_gui.elements.UILabel(relative_rect=pygame.Rect(((graph_size[1]/2) - 125, 5), (250,25)),
-                                              text="Battery",
+                                              text="Entropy",
                                               container=battery_graph_background,
                                               manager=gui_manager)
 
@@ -243,7 +254,36 @@ def update_graph(graph_values, new_data):
         i += 1
     new_values.append(new_data)
     graph_values[:] = new_values
-    
+
+def graph_new_data(data):
+    write_line_to_log_file(data)
+    l=[]
+    for i in data.split(","):
+        l.append(float(i))
+    x,y,z,pressure,temp=l
+
+    update_graph(graph_data[0], x)
+    update_graph(graph_data[1], y)
+    update_graph(graph_data[2], z)
+    update_graph(graph_data[3], pressure)
+    update_graph(graph_data[4], temp)
+
+ros_receive.set_sensor_data_callback(graph_new_data)
+
+update_graph(graph_data[0], 0)
+update_graph(graph_data[1], 0)
+update_graph(graph_data[2], 0)
+update_graph(graph_data[3], 0)
+update_graph(graph_data[4], 0)
+update_graph(graph_data[0], 0)
+update_graph(graph_data[1], 0)
+update_graph(graph_data[2], 0)
+update_graph(graph_data[3], 0)
+update_graph(graph_data[4], 0)
+update_graph(graph_data[5], 0)
+update_graph(graph_data[5], 0)
+
+
 def graph_offset(graph, origin):
     output = []
     for i in range(len(graph)):
@@ -254,16 +294,16 @@ def graph_offset(graph, origin):
 def draw_graphs():
     
     # Draw three graphs for the imu sensor
-    pygame.draw.lines(screen, "green", False, graph_offset(graph_data[0], graph_origin[0]), 1)
-    pygame.draw.lines(screen, "green", False, graph_offset(graph_data[0], graph_origin[0]), 1)
-    pygame.draw.lines(screen, "green", False, graph_offset(graph_data[0], graph_origin[0]), 1)
+    pygame.draw.lines(screen, "red", False, graph_offset(graph_data[0], graph_origin[0]), 1)
+    pygame.draw.lines(screen, "green", False, graph_offset(graph_data[1], graph_origin[0]), 1)
+    pygame.draw.lines(screen, "blue", False, graph_offset(graph_data[2], graph_origin[0]), 1)
     
-    pygame.draw.lines(screen, "red", False, graph_offset(graph_data[1], graph_origin[1]), 1)
-    pygame.draw.lines(screen, "cyan", False, graph_offset(graph_data[2], graph_origin[2]), 1)
-    pygame.draw.lines(screen, "magenta", False, graph_offset(graph_data[3], graph_origin[3]), 1)
+    pygame.draw.lines(screen, "red", False, graph_offset(graph_data[3], graph_origin[1]), 1)
+    pygame.draw.lines(screen, "cyan", False, graph_offset(graph_data[4], graph_origin[2]), 1)
+    pygame.draw.lines(screen, "magenta", False, graph_offset(graph_data[5], graph_origin[3]), 1)
     
     #draw arm position
-    scale=15
+    scale=10
     pos0=[40, (graphs_panel_height/2)-banner_size]
     pos1=pos0[:]
     pos1[0]+=length1*math.cos(motor_angles[1])*scale
@@ -287,7 +327,7 @@ ros_receive.set_log_data_callback(console_print)
 
 
 while running:
-    sleep(0.1)
+    time.sleep(0.1)
     time_delta = clock.tick(60)/1000.0
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -308,12 +348,8 @@ while running:
 
     screen.fill("navy blue")
     gui_manager.draw_ui(screen)
-    ## JUST FOR TESTING
-    battery -= time_delta
-    update_graph(graph_data[0], random.randint(-60, 40))
-    update_graph(graph_data[1], random.randint(-40, 40))
-    update_graph(graph_data[2], random.randrange(-40, 40))
-    update_graph(graph_data[3], battery)
+
+    update_graph(graph_data[5], random.randrange(0, 150))
     draw_graphs()
     #displaying logs
     #displaying motor angles and stuff
