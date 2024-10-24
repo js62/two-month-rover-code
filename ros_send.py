@@ -1,6 +1,6 @@
 import math
-import rclpy
-from rclpy.node import Node
+import rclpy # type: ignore
+from rclpy.node import Node # type: ignore
 from std_msgs.msg import String # type: ignore
 
 node=Node("groundstation")
@@ -16,7 +16,7 @@ def send_motor_positions(motor_poses):
 
     pin_vals=motor_poses
 
-    message_text=""
+    message_text="motor:"
     for i,t in enumerate(pin_vals):
         if i:
             message_text+=","
@@ -30,9 +30,9 @@ def send_motor_positions(motor_poses):
         if i==2: #joint 3
             t*=180/math.pi
         if i==3:
-            pass
+            t*=255
         if i==4:
-            pass
+            t*=255/2
         message_text+=str(round(t,4))
     
     message=String()

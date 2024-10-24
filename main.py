@@ -7,7 +7,7 @@ import pygame_gui.elements.ui_label
 import pygame_gui.elements.ui_text_box
 from pygame_gui.core import ObjectID
 
-import rclpy
+import rclpy # type: ignore
 rclpy.init()
 
 import ros_send
