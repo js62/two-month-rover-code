@@ -143,7 +143,7 @@ void setup() {
     Serial.println("log:initialization failed. Check if the SD card is inserted properly.");
   }else{
     Serial.println("log:SD card initialization done.");
-    write_to_SD("data.csv", "ACCELERATION_X,ACCELERATION_Y,ACCELERATION_Z,ALTITUDE,TEMPERATURE");
+    write_to_SD("data.csv", "ACCELERATION_X,ACCELERATION_Y,ACCELERATION_Z,ALTITUDE,PRESSURE,TEMPERATURE");
   }
 
   // Turn LED off after serial initialization
@@ -221,7 +221,7 @@ void loop() {
       }else{
         // STOP
         digitalWrite(MOTOR_DRIVER_BASE_IN1, LOW);
-        digitalWrite(MOTOR_DRIVER_BASE_IN1, LOW);
+        digitalWrite(MOTOR_DRIVER_BASE_IN2, LOW);
       }
 
       // CLAW
@@ -236,7 +236,7 @@ void loop() {
       }else{
         // STOP
         digitalWrite(MOTOR_DRIVER_CLAW_IN1, LOW);
-        digitalWrite(MOTOR_DRIVER_CLAW_IN1, LOW);
+        digitalWrite(MOTOR_DRIVER_CLAW_IN2, LOW);
       }
 
       //set motor positions to values
@@ -254,20 +254,24 @@ void loop() {
 
   // Display sensor data
   String sensor_data = get_sensors();
-  Serial.println("log_data:" + sensor_data);
+  Serial.println("sensor_data:" + sensor_data);
   write_to_SD("data.csv", sensor_data);
-  delay(250);
 }
 
 
-// Outputs string of comma separated values, in order of acceleration,altitude,temp
+// Outputs string of comma separated values, in order of acceleration,altitude,pressure,temp
   String get_sensors(){
     String dataline = "";
     double x,y,z = -999;
     sensors_event_t linearAccelData;
     bno.getEvent(&linearAccelData, Adafruit_BNO055::VECTOR_LINEARACCEL);
+    if (!bmp.performReading()) {
+      Serial.println("log:Failed to perform BMP reading :(");
+    }
     dataline += printEvent(&linearAccelData);
     dataline += bmp.readAltitude(SEALEVELPRESSURE_HPA);
+    dataline += ",";
+    dataline += bmp.pressure();
     dataline += ",";
     dataline += bno.getTemp();
     return dataline;
