@@ -13,12 +13,16 @@
 #define I2C_SCL_PIN 3
 #define WIRE Wire1
 #define SEALEVELPRESSURE_HPA (1013.25)
-#define MOTOR_DRIVER_BASE_IN1 14
-#define MOTOR_DRIVER_BASE_IN2 15
-#define MOTOR_DRIVER_BASE_PWM 12
-#define MOTOR_DRIVER_CLAW_IN1 7 // these two just for direction
-#define MOTOR_DRIVER_CLAW_IN2 6
-#define MOTOR_DRIVER_CLAW_PWM 11 // These are GPIO nums
+#define MOTOR_DRIVER_CLAW_IN1 14
+#define MOTOR_DRIVER_CLAW_IN2 15
+#define MOTOR_DRIVER_CLAW_PWM 12
+#define MOTOR_DRIVER_BASE_IN1 7 // these two just for direction
+#define MOTOR_DRIVER_BASE_IN2 6
+#define MOTOR_DRIVER_BASE_PWM 11 // These are GPIO nums
+#define SD_PIN_CS 21
+#define SD_PIN_MISO 20
+#define SD_PIN_MOSI 19
+#define SD_PIN_SCK 18
 
 
 // SD card notes
@@ -43,7 +47,6 @@ uint32_t lastBlink = 0;
 bool ledState = false;
 String get_sensors();
 void write_to_SD(String dataline, String filename);
-const int chipSelect = 21;
 //These are the max and min motor positions! Set properly before running, so arm doesn't break!!!
 //They should be numbers from 0 to 1
 // Actually, Alex said they range from 0-255
@@ -66,10 +69,17 @@ void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
   // Turn LED on for initialization
   digitalWrite(LED_BUILTIN, !ledState);
+  // gpio_set_function(SD_PIN_CS, GPIO_FUNC_SPI);
+  // gpio_set_function(SD_PIN_MISO, GPIO_FUNC_SPI);
+
+  // setup
+  SPI.setRX(SD_PIN_MISO);
+  SPI.setTX(SD_PIN_MOSI);
+  SPI.setSCK(SD_PIN_SCK);
 
   // setup motor driver pins
-  gpio_set_function(MOTOR_DRIVER_BASE_PWM, GPIO_FUNC_PWM);
-  gpio_set_function(MOTOR_DRIVER_CLAW_PWM, GPIO_FUNC_PWM);
+  // gpio_set_function(MOTOR_DRIVER_BASE_PWM, GPIO_FUNC_PWM);
+  // gpio_set_function(MOTOR_DRIVER_CLAW_PWM, GPIO_FUNC_PWM);
   pinMode(MOTOR_DRIVER_BASE_PWM, OUTPUT);
   pinMode(MOTOR_DRIVER_CLAW_PWM, OUTPUT);
   pinMode(MOTOR_DRIVER_BASE_IN1, OUTPUT);
@@ -91,6 +101,7 @@ void setup() {
   }
 
   // setup sensor pin
+
   gpio_set_function(I2C_SDA_PIN, GPIO_FUNC_I2C);
   gpio_set_function(I2C_SCL_PIN, GPIO_FUNC_I2C);
   WIRE.setSCL(I2C_SCL_PIN);
@@ -104,8 +115,8 @@ void setup() {
   if (!bno.begin())
   {
     /* There was a problem detecting the BNO055 ... check your connections */
-    Serial.print("log:Ooops, no BNO055 detected ... Check your wiring or I2C ADDR!");
-    while (1);
+    Serial.println("log:Ooops, no BNO055 detected ... Check your wiring or I2C ADDR!");
+    // while (1);
   }else{
     Serial.println("log:BNO055 connected");
   }
@@ -117,26 +128,23 @@ void setup() {
   //if (! bmp.begin_SPI(BMP_CS, BMP_SCK, BMP_MISO, BMP_MOSI)) {  // software SPI mode
     Serial.println("log:Could not find a valid BMP3 sensor, check wiring!");
     // while (1);
+  }else{
+    Serial.println("log:BMP388 connected");
+    bmp.setTemperatureOversampling(BMP3_OVERSAMPLING_8X);
+    bmp.setPressureOversampling(BMP3_OVERSAMPLING_4X);
+    bmp.setIIRFilterCoeff(BMP3_IIR_FILTER_COEFF_3);
+    bmp.setOutputDataRate(BMP3_ODR_50_HZ);
   }
-  Serial.println("log:BMP388 connected");
-  bmp.setTemperatureOversampling(BMP3_OVERSAMPLING_8X);
-  bmp.setPressureOversampling(BMP3_OVERSAMPLING_4X);
-  bmp.setIIRFilterCoeff(BMP3_IIR_FILTER_COEFF_3);
-  bmp.setOutputDataRate(BMP3_ODR_50_HZ);
 
   // Initialize SD card
   // Serial.print("Initializing SD card...");
 
-  // if (!SD.begin(chipSelect)) {
-  //   Serial.println("initialization failed. Things to check:");
-  //   Serial.println("1. is a card inserted?");
-  //   Serial.println("2. is your wiring correct?");
-  //   Serial.println("3. did you change the chipSelect pin to match your shield or module?");
-  //   Serial.println("Note: press reset button on the board and reopen this Serial Monitor after fixing your issue!");
-  //   while (true);
-  // }
-
-  // Serial.println("initialization done.");
+  if (!SD.begin(SD_PIN_CS)) {
+    Serial.println("log:initialization failed. Check if the SD card is inserted properly.");
+  }else{
+    Serial.println("log:SD card initialization done.");
+    write_to_SD("data.csv", "ACCELERATION_X,ACCELERATION_Y,ACCELERATION_Z,ALTITUDE,TEMPERATURE");
+  }
 
   // Turn LED off after serial initialization
   digitalWrite(LED_BUILTIN, ledState);
@@ -202,34 +210,34 @@ void loop() {
 
       // motor values, 3-4
       // BASE directions
-      // if(values[3] > 0){
-      //   // CW
-      //   digitalWrite(MOTOR_DRIVER_BASE_IN2, HIGH);
-      //   digitalWrite(MOTOR_DRIVER_BASE_IN1, LOW);
-      // }else if(values[3] < 0){
-      //   // CCW
-      //   digitalWrite(MOTOR_DRIVER_BASE_IN1, HIGH);
-      //   digitalWrite(MOTOR_DRIVER_BASE_IN2, LOW);
-      // }else{
-      //   // STOP
-      //   digitalWrite(MOTOR_DRIVER_BASE_IN1, LOW);
-      //   digitalWrite(MOTOR_DRIVER_BASE_IN1, LOW);
-      // }
+      if(values[3] > 0){
+        // CW
+        digitalWrite(MOTOR_DRIVER_BASE_IN2, HIGH);
+        digitalWrite(MOTOR_DRIVER_BASE_IN1, LOW);
+      }else if(values[3] < 0){
+        // CCW
+        digitalWrite(MOTOR_DRIVER_BASE_IN1, HIGH);
+        digitalWrite(MOTOR_DRIVER_BASE_IN2, LOW);
+      }else{
+        // STOP
+        digitalWrite(MOTOR_DRIVER_BASE_IN1, LOW);
+        digitalWrite(MOTOR_DRIVER_BASE_IN1, LOW);
+      }
 
-      // // CLAW
-      // if(values[4] > 0){
-      //   // CW
-      //   digitalWrite(MOTOR_DRIVER_CLAW_IN2, HIGH);
-      //   digitalWrite(MOTOR_DRIVER_CLAW_IN1, LOW);
-      // }else if(values[4] < 0){
-      //   // CCW
-      //   digitalWrite(MOTOR_DRIVER_CLAW_IN1, HIGH);
-      //   digitalWrite(MOTOR_DRIVER_CLAW_IN2, LOW);
-      // }else{
-      //   // STOP
-      //   digitalWrite(MOTOR_DRIVER_CLAW_IN1, LOW);
-      //   digitalWrite(MOTOR_DRIVER_CLAW_IN1, LOW);
-      // }
+      // CLAW
+      if(values[4] > 0){
+        // CW
+        digitalWrite(MOTOR_DRIVER_CLAW_IN2, HIGH);
+        digitalWrite(MOTOR_DRIVER_CLAW_IN1, LOW);
+      }else if(values[4] < 0){
+        // CCW
+        digitalWrite(MOTOR_DRIVER_CLAW_IN1, HIGH);
+        digitalWrite(MOTOR_DRIVER_CLAW_IN2, LOW);
+      }else{
+        // STOP
+        digitalWrite(MOTOR_DRIVER_CLAW_IN1, LOW);
+        digitalWrite(MOTOR_DRIVER_CLAW_IN1, LOW);
+      }
 
       //set motor positions to values
 
@@ -237,18 +245,17 @@ void loop() {
         servos[i].write(values[i]);
       }
 
-      // digitalWrite(MOTOR_DRIVER_BASE_IN1, HIGH);
-      // digitalWrite(MOTOR_DRIVER_BASE_IN2, LOW);
-      // analogWrite(MOTOR_DRIVER_BASE_PWM, 230);
-      //analogWrite(MOTOR_DRIVER_CLAW_PWM, abs(values[4]));
-
+      analogWrite(MOTOR_DRIVER_BASE_PWM, abs(values[3]));
+      analogWrite(MOTOR_DRIVER_CLAW_PWM, abs(values[4]));
     }
 
 
   }
 
   // Display sensor data
-  //Serial.println("log_data:" + get_sensors());
+  String sensor_data = get_sensors();
+  Serial.println("log_data:" + sensor_data);
+  write_to_SD("data.csv", sensor_data);
   delay(250);
 }
 
@@ -322,7 +329,7 @@ String printEvent(sensors_event_t* event) {
   return data;
 }
 
-void write_to_SD(String dataline, String filename){
+void write_to_SD(String filename, String dataline){
     File datafile = SD.open(filename, FILE_WRITE);
 
   // if the file is available, write to it:
@@ -330,10 +337,10 @@ void write_to_SD(String dataline, String filename){
     datafile.println(dataline);
     datafile.close();
     // print to the serial port too:
-    Serial.println("Wrote: " + dataline + " to the file " + filename);
+    Serial.println("log:Wrote: " + dataline + " to the file " + filename);
   }
   // if the file isn't open, pop up an error:
   else {
-    Serial.println("Error opening file " + filename);
+    Serial.println("log:Error opening file " + filename);
   }
 }
