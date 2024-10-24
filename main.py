@@ -43,7 +43,6 @@ graph_origin = [(graphs_panel_width +graph_y_border, banner_size+(graph_size[1]/
                 (graphs_panel_width + graph_size[0]+graph_y_border, banner_size+(graph_size[1]*2))]
 
 #--Debug Variables--#
-input_1 = [0,0] #This is just for the left stick
 
 control_method="ik" # either "ik" or "direct" or "" for none
 
@@ -108,7 +107,6 @@ def calculate_IK_angles():
         IK_target_pos[1]/=d
     if ((IK_target_pos[0]**2+IK_target_pos[1]**2)**0.5)<min_dist:
         d=min_dist/((IK_target_pos[0]**2+IK_target_pos[1]**2)**0.5)
-        print(d)
         IK_target_pos[0]*=d
         IK_target_pos[1]*=d
 
@@ -231,6 +229,8 @@ def parse_input(input):
 def console_print(text):
     console_log.append_html_text(text + "<br>")
 
+ssh_in_libre.console_send=console_print
+
 def update_graph(graph_values, new_data):
     new_values = []
     i = 0
@@ -263,7 +263,7 @@ def draw_graphs():
     pygame.draw.lines(screen, "magenta", False, graph_offset(graph_data[3], graph_origin[3]), 1)
     
     #draw arm position
-    scale=20
+    scale=15
     pos0=[40, (graphs_panel_height/2)-banner_size]
     pos1=pos0[:]
     pos1[0]+=length1*math.cos(motor_angles[1])*scale
@@ -284,7 +284,6 @@ def draw_graphs():
 
     
 ros_receive.set_log_data_callback(console_print)
-ros_send.set_send_positions_callback(console_print)
 
 
 while running:
@@ -319,19 +318,34 @@ while running:
     #displaying logs
     #displaying motor angles and stuff
     
+
+    if controller:
+        if controller.get_axis(2)>-0.95 or controller.get_axis(5)>-0.95:
+            d=controller.get_axis(2)-controller.get_axis(5)
+            motor_angles[4]=d
+        else:
+            motor_angles[4]=0
+        if controller.get_axis(0)**2>0.02:
+            motor_angles[0]=controller.get_axis(0)
+        else:
+            motor_angles[0]=0
+
+
     if control_method=="ik":
         # index 0 and index 4 are not set here (because they're for the cd motors)
         motor_angles[1],motor_angles[2],motor_angles[3]=calculate_IK_angles()
         if controller:
-            if controller.get_axis(0)**2+controller.get_axis(1)**2>0.02:
-                IK_target_pos[0]+=controller.get_axis(0)/3
+            
+            if controller.get_axis(4)**2+controller.get_axis(1)**2>0.02:
+                IK_target_pos[0]-=controller.get_axis(4)/3
                 IK_target_pos[1]+=controller.get_axis(1)/2
-            IK_target_pos[2]+=controller.get_hat(0)[1]/10
+            IK_target_pos[2]-=controller.get_hat(0)[1]/10
     
     # if control_method=="direct":
     #     direct_motor_control()
     # clamp_andgles() #May not be necessary since this is done on the pico
 
+    ros_send.send_motor_positions(motor_angles)
     
     pygame.display.update()
 
