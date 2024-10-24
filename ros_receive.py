@@ -1,6 +1,6 @@
 import threading
-import rclpy
-from rclpy.node import Node
+import rclpy # type: ignore
+from rclpy.node import Node # type: ignore
 from std_msgs.msg import String # type: ignore
 
 
@@ -22,16 +22,12 @@ def set_log_data_callback(f):
     log_data_callback=f
 
 
-def log(d):
-    log_data_callback("logging data: "+d)
-
 def process_data(m):
     components=m.data.split(":")
-    if len(components)==2:
+    if components[0]=="log" or len(components)==2:
         data_type,data=components
-        if data_type=="sensor":
+        if data_type=="sensor_data":
             sensor_data_callback(data)
-            log(data)
         elif data_type=="servo":
             servo_data_callback(data)
         elif data_type=="log":
@@ -40,7 +36,6 @@ def process_data(m):
             print(f"Error: Unknown data type: '{data_type}' received in 'pico/output'")
     else:
         print(f"Error: Can't parse pico/output data: '{m.data}'. Wrong number of colons.")
-
 
 
 
