@@ -47,6 +47,7 @@ def write_line_to_log_file(s):
     path="log_data.csv"
     file=open(path,"a")
     file.writelines(["\n",str(s)])
+    file.close()
 
 write_line_to_log_file(time.ctime())
 write_line_to_log_file("ACCELERATION_x,ACCELERATION_y,ACCELERATION_z,PRESSURE,TEMPERATURE")
