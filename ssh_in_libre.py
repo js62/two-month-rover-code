@@ -5,6 +5,13 @@ from time import sleep
 import threading
 
 
+
+try:
+    subprocess.run(["nmcli","radio","wifi","off"])
+except Exception as e:
+    print(e)
+
+
 def console_send(m):
     pass
 
@@ -26,11 +33,14 @@ t.start()
 
 
 
-
 def kill():
     global going, process
     console_send("killing pid: " + str(process.pid))
     going=False
+    try:
+        subprocess.run(["nmcli","radio","wifi","on"])
+    except Exception as e:
+        pass
     try:
         os.killpg(os.getpgid(process.pid), signal.SIGKILL)
     except ProcessLookupError as e:

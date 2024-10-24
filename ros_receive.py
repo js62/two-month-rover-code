@@ -25,7 +25,10 @@ def set_log_data_callback(f):
 def process_data(m):
     components=m.data.split(":")
     if components[0]=="log" or len(components)==2:
-        data_type,data=components
+        data_type=components[0]
+        data=components[1]
+        if len(components)>2:
+            data+=":" + components[2]
         if data_type=="sensor_data":
             sensor_data_callback(data)
         elif data_type=="servo":
