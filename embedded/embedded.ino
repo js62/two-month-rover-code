@@ -43,7 +43,9 @@
 // Additionally, setting PWM to L causes short brake, unless on standby
 
 const uint32_t BLINK_INTERVAL = 1000;
+const uint32_t READ_INTERVAL = 100;
 uint32_t lastBlink = 0;
+uint32_t lastRead = 0;
 bool ledState = false;
 String get_sensors();
 void write_to_SD(String dataline, String filename);
@@ -96,9 +98,9 @@ void setup() {
   Serial.println("log:Setup motor pins");
 
   // setup servo pins
-  for (int i =0;i<3;i++){
-    servos[i].attach(servoPinNums[i]);
-  }
+  servos[0].attach(servoPinNums[0], 1050, 2400);
+  servos[1].attach(servoPinNums[1], 400, 2400);
+  servos[2].attach(servoPinNums[2], 400, 2400);
 
   // setup sensor pin
 
@@ -157,12 +159,6 @@ void loop() {
     ledState = !ledState;
     digitalWrite(LED_BUILTIN, ledState);
   }
-
-
-  // Read sensor data
-  // I2C, pin 4 and 5 
-
-
 
   // Respond to serial commands
   if (Serial.available()) {
@@ -253,9 +249,12 @@ void loop() {
   }
 
   // Display sensor data
-  String sensor_data = get_sensors();
-  Serial.println("sensor_data:" + sensor_data);
-  write_to_SD("data.csv", sensor_data);
+  if (millis() - lastRead > READ_INTERVAL) {
+    lastRead = millis();
+      String sensor_data = get_sensors();
+      Serial.println("sensor_data:" + sensor_data);
+      write_to_SD("data.csv", sensor_data);
+  }
 }
 
 
@@ -271,7 +270,7 @@ void loop() {
     dataline += printEvent(&linearAccelData);
     dataline += bmp.readAltitude(SEALEVELPRESSURE_HPA);
     dataline += ",";
-    dataline += bmp.pressure();
+    dataline += bmp.pressure;
     dataline += ",";
     dataline += bno.getTemp();
     return dataline;
