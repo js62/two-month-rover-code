@@ -169,7 +169,9 @@ void loop() {
     String type = command.substring(0,command.indexOf(":"));
     if (type == "ping"){
       Serial.println("pong");
-    }else if (type == "motor"){
+    } else if (type == "reboot"){
+      watchdog_reboot(0,0,0);
+    } else if (type == "motor"){
 
       String temp[5] = {""};
 
