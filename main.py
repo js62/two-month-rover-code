@@ -1,4 +1,3 @@
-import sys
 import time
 import math
 import random
@@ -220,6 +219,8 @@ def console_send():
     elif args[0]=="control":
         global control_method
         control_method=args[1]
+    elif args[0]=="reconnect":
+        ssh_in_libre.restart()
 
 
 
@@ -387,5 +388,6 @@ while running:
     pygame.display.update()
 
 
-ssh_in_libre.kill()
 rclpy.shutdown()
+time.sleep(0.1)
+ssh_in_libre.kill() #this is only necessary to kill the ssh process, but it will kill everything
