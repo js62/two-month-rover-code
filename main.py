@@ -48,8 +48,8 @@ def write_line_to_log_file(s):
     file.writelines(["\n",str(s)])
     file.close()
 
-write_line_to_log_file(time.ctime())
-write_line_to_log_file("ACCELERATION_x,ACCELERATION_y,ACCELERATION_z,PRESSURE,TEMPERATURE")
+write_line_to_log_file("\nStarting recording on: "+time.ctime())
+write_line_to_log_file("ACCELERATION_X,ACCELERATION_Y,ACCELERATION_Z,ALTITUDE,PRESSURE,TEMPERATURE")
 
 #region IK CALCULATIONS
 control_method="ik" # either "ik" or "direct" or "" for none
@@ -179,7 +179,7 @@ battery_graph_background = pygame_gui.elements.UIPanel(relative_rect=pygame.Rect
                                                 visible=True,
                                                 manager=gui_manager)
 battery_graph_label = pygame_gui.elements.UILabel(relative_rect=pygame.Rect(((graph_size[1]/2) - 125, 5), (250,25)),
-                                              text="Entropy",
+                                              text="Altitude",
                                               container=battery_graph_background,
                                               manager=gui_manager)
 
@@ -207,12 +207,17 @@ def console_send():
     # Parse the input to find if there are any commands
     # separate string into array of arguments
     args = parse_input(input)
-    if args[0] == "send":
-        if len(args) != 6:
-            console_print("Error: must send exactly 5 motor positions, separated by spaces.")
-        else:
-            positions = [float(args[1]),float(args[2]),float(args[3]),float(args[4]),float(args[5])]
-            ros_send.send_motor_positions(positions)
+    if args[0] == "clear":
+        console_log.clear()
+    elif args[0] == "send":
+        m=input[input.find(" "):]
+        ros_send.send_command(m)
+        console_print("sent: "+m)
+        # if len(args) != 6:
+        #     console_print("Error: must send exactly 5 motor positions, separated by spaces.")
+        # else:
+        #     positions = [float(args[1]),float(args[2]),float(args[3]),float(args[4]),float(args[5])]
+        #     ros_send.send_motor_positions(positions)
     elif args[0]=="exit":
         global running
         running=False
@@ -221,6 +226,12 @@ def console_send():
         control_method=args[1]
     elif args[0]=="reconnect":
         ssh_in_libre.restart()
+    # command list for reference:
+    #reconnect
+    #control
+    #send
+    #send reboot
+    #clear
 
 
 
@@ -262,13 +273,14 @@ def graph_new_data(data):
     l=[]
     for i in data.split(","):
         l.append(float(i))
-    x,y,z,pressure,temp=l
+    x,y,z,altitude,pressure,temp=l
 
-    update_graph(graph_data[0], x)
-    update_graph(graph_data[1], y)
-    update_graph(graph_data[2], z)
-    update_graph(graph_data[3], pressure)
-    update_graph(graph_data[4], temp)
+    update_graph(graph_data[0], x*3)
+    update_graph(graph_data[1], y*3)
+    update_graph(graph_data[2], z*3)
+    update_graph(graph_data[3], temp)
+    update_graph(graph_data[4], ((pressure/101300)-0.98437)*80000)
+    update_graph(graph_data[5], (altitude-134)*30+75)
 
 ros_receive.set_sensor_data_callback(graph_new_data)
 
@@ -329,7 +341,7 @@ ros_receive.set_log_data_callback(console_print)
 
 
 while running:
-    time.sleep(0.1)
+    time.sleep(0.12)
     time_delta = clock.tick(60)/1000.0
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -351,7 +363,6 @@ while running:
     screen.fill("navy blue")
     gui_manager.draw_ui(screen)
 
-    update_graph(graph_data[5], random.randrange(0, 150))
     draw_graphs()
     #displaying logs
     #displaying motor angles and stuff

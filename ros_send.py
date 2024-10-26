@@ -39,3 +39,12 @@ def send_motor_positions(motor_poses):
     message.data=message_text
     motor_control_topic.publish(message)
 
+
+
+def send_command(m):
+    message_text=m
+    message=String()
+    message.data=message_text
+    motor_control_topic.publish(message)
+
+
