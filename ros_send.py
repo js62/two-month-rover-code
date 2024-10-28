@@ -24,15 +24,17 @@ def send_motor_positions(motor_poses):
 
         if i==0: #joint 1
             t*=180/math.pi
+            t=150+t
         if i==1: #joint 2
             t*=180/math.pi
-            t*=180/70
+            t*=180/70/1.136
         if i==2: #joint 3
             t*=180/math.pi
+            t+=90
         if i==3:
             t*=255
         if i==4:
-            t*=255/2
+            t*=255
         message_text+=str(round(t,4))
     
     message=String()

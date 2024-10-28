@@ -90,7 +90,7 @@ def calculate_IK_angles():
     b=math.asin(clamp(math.sin(angles[1])/dist_squared**0.5*length2,-1,1)) #this is the law of sines salved for the angle
     
     angles[0]=a-math.pi/2-b
-    angles[0]=clamp(angles[0],-math.pi/2,math.pi/4)
+    angles[0]=clamp(angles[0],-math.pi/2,0)
 
     angles[2]=IK_target_pos[2]-angles[1]-angles[0]
     angles[2]=clamp(angles[2],-math.pi/2,math.pi/2)
@@ -124,9 +124,29 @@ def calculate_IK_angles():
 
 
     return angles
+
+def set_target_pos():
+    IK_target_pos[0]=math.cos(motor_angles[1])*length1+math.cos(motor_angles[1]+motor_angles[2])*length2+math.cos(motor_angles[1]+motor_angles[2]+motor_angles[3])*length3
+    IK_target_pos[1]=math.sin(motor_angles[1])*length1+math.sin(motor_angles[1]+motor_angles[2])*length2+math.sin(motor_angles[1]+motor_angles[2]+motor_angles[3])*length3
+    IK_target_pos[2]=motor_angles[1]+motor_angles[2]+motor_angles[3]
+
+
 #endregion
 
-# def calculate direct motor control
+def direct_motor_control():
+    if controller:
+        if abs(controller.get_axis(1))>0.07:
+            motor_angles[1]+=controller.get_axis(1)/6
+        if abs(controller.get_axis(4))>0.07:
+            motor_angles[2]+=controller.get_axis(4)/6
+        
+        if controller.get_axis(2)>-0.95 or controller.get_axis(5)>-0.95:
+            d=controller.get_axis(5)-controller.get_axis(2)
+            motor_angles[3]+=d/6
+    motor_angles[1]=clamp(motor_angles[1],-math.pi/2,0)
+    motor_angles[2]=clamp(motor_angles[2],0,math.pi/180*70)
+    motor_angles[3]=clamp(motor_angles[3],-math.pi/2,math.pi/2)
+    
 
 running=True
 pygame.init()
@@ -224,6 +244,8 @@ def console_send():
     elif args[0]=="control":
         global control_method
         control_method=args[1]
+        if control_method=="ik":
+            set_target_pos()
     elif args[0]=="reconnect":
         ssh_in_libre.restart()
     # command list for reference:
@@ -341,7 +363,7 @@ ros_receive.set_log_data_callback(console_print)
 
 
 while running:
-    time.sleep(0.12)
+    time.sleep(0.1)
     time_delta = clock.tick(60)/1000.0
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -366,19 +388,21 @@ while running:
     draw_graphs()
     #displaying logs
     #displaying motor angles and stuff
-    
 
     if controller:
-        if controller.get_axis(2)>-0.95 or controller.get_axis(5)>-0.95:
-            d=controller.get_axis(2)-controller.get_axis(5)
-            motor_angles[4]=d
-        else:
-            motor_angles[4]=0
+        motor_angles[4]=controller.get_button(4)-controller.get_button(5)
         if controller.get_axis(0)**2>0.02:
             motor_angles[0]=controller.get_axis(0)
         else:
             motor_angles[0]=0
-
+        
+        if controller.get_button(0):
+            control_method="ik"
+            set_target_pos()
+            console_print("ik")
+        if controller.get_button(2):
+            control_method="direct"
+            console_print("direct")
 
     if control_method=="ik":
         # index 0 and index 4 are not set here (because they're for the cd motors)
@@ -386,13 +410,15 @@ while running:
         if controller:
             
             if controller.get_axis(4)**2+controller.get_axis(1)**2>0.02:
-                IK_target_pos[0]-=controller.get_axis(4)/3
-                IK_target_pos[1]+=controller.get_axis(1)/2
-            IK_target_pos[2]-=controller.get_hat(0)[1]/10
+                IK_target_pos[0]-=controller.get_axis(1)
+                IK_target_pos[1]+=controller.get_axis(4)/1.5
+            
+            if controller.get_axis(2)>-0.98 or controller.get_axis(5)>-0.98:
+                d=controller.get_axis(2)-controller.get_axis(5)
+                IK_target_pos[2]-=d/8
     
-    # if control_method=="direct":
-    #     direct_motor_control()
-    # clamp_andgles() #May not be necessary since this is done on the pico
+    if control_method=="direct":
+        direct_motor_control()
 
     ros_send.send_motor_positions(motor_angles)
     

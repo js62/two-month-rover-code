@@ -21,7 +21,7 @@ going=True
 def p():
     global process, going
     while going:
-        process=subprocess.Popen("ssh sbc 'bash /home/sbc2/run.sh'", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        process=subprocess.Popen("ssh sbc2@192.168.1.2 'bash /home/sbc2/run.sh'", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out=process.communicate()
         console_send(out[0].decode()+" "+out[1].decode())
         sleep(2)
